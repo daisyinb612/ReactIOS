@@ -1,34 +1,44 @@
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 from supabase import create_client, Client
+from werkzeug.security import generate_password_hash, check_password_hash
 
+db = SQLAlchemy()
 app = Flask(__name__)
 
-# 直接替换为你的Supabase URL和Key
-url: str = "https://ohyetjikesjqvyaxpifa.supabase.co"  # 替换为你的实际Supabase URL
-key: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9oeWV0amlrZXNqcXZ5YXhwaWZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg1NzA0MzIsImV4cCI6MjA1NDE0NjQzMn0.m4DJgrs4ES6UMHY8z5XOspOsXZF6UPlxfTeMOC5p358"  # 替换为你的实际Supabase Key
-supabase: Client = create_client(url, key)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456789@db.ohyetjikesjqvyaxpifa.supabase.co:5432/postgres'
+
+db.init_app(app)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(128), nullable=False)  # 直接存储密码
 
 @app.route('/auth/register', methods=['POST'])
 def register():
     data = request.json
-    response = supabase.auth.sign_up({
-        'email': data['username'],
-        'password': data['password']
-    })
-    if response.get('error'):
-        return jsonify({'message': 'Registration failed'}), 400
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({'message': 'Email already registered'}), 400
+
+    new_user = User(email=data['email'], password=data['password'])
+    db.session.add(new_user)
+    db.session.commit()
+
     return jsonify({'message': 'User registered successfully'})
 
 @app.route('/auth/login', methods=['POST'])
 def login():
     data = request.json
-    response = supabase.auth.sign_in_with_password({
-        'email': data['username'],
-        'password': data['password']
-    })
-    if response.get('error'):
+    user = User.query.filter_by(email=data['email']).first()
+    if user is None or user.password != data['password']:
         return jsonify({'message': 'Invalid credentials'}), 401
+
     return jsonify({'message': 'Login successful'})
 
+
+with app.app_context():
+    db.create_all()
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5050)
