@@ -1,10 +1,12 @@
 import React from 'react';
 import { TextInput, StyleSheet } from 'react-native';
 
-const CustomInput = ({ placeholder, secureTextEntry }) => {
+const Input = ({ value, onChangeText, placeholder, secureTextEntry }) => {
   return (
     <TextInput
       style={styles.input}
+      value={value}
+      onChangeText={onChangeText}
       placeholder={placeholder}
       secureTextEntry={secureTextEntry}
     />
@@ -22,4 +24,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default CustomInput;
+export default Input;
